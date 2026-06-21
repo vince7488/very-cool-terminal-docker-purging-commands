@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  bash:
+    name: Bash checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Syntax check
+        run: |
+          bash -n mac-linux/docker-purge.sh
+          bash -n tests/test-bash.sh
+
+      - name: ShellCheck
+        run: shellcheck mac-linux/docker-purge.sh tests/test-bash.sh
+
+      - name: Mocked behavior tests
+        run: bash tests/test-bash.sh
+
+  powershell:
+    name: PowerShell checks
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Syntax check
+        shell: pwsh
+        run: |
+          $files = @(
+            'windows/docker-purge.ps1',
+            'tests/test-powershell.ps1',
+            'tests/check-readme-assets.ps1'
+          )
+
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$errors) > $null
+            if ($errors.Count) {
+              $errors | Format-List *
+              throw "PowerShell syntax check failed for $file"
+            }
+          }
+
+      - name: Mocked behavior tests
+        shell: pwsh
+        run: pwsh -NoProfile -File tests/test-powershell.ps1
+
+      - name: README image asset check
+        shell: pwsh
+        run: pwsh -NoProfile -File tests/check-readme-assets.ps1
