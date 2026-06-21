@@ -73,7 +73,7 @@ prompt_input() {
     local result_var="$3"
 
     printf '%b%s%b' "$color" "$prompt" "$RESET"
-    read -r "$result_var"
+    read -r "${result_var?}"
 }
 
 prompt_yes_no() {
@@ -82,7 +82,7 @@ prompt_yes_no() {
 
     printf '%b%s%b' "$BRIGHT_GREEN" "$prompt" "$RESET"
     printf '%b%s%b ' "$YELLOW" " (y/N)" "$RESET"
-    read -r "$result_var"
+    read -r "${result_var?}"
 }
 
 write_preview_block() {
@@ -190,8 +190,8 @@ prompt_purge_confirmation() {
         '         | O |'
         '          |=|'
         '      ___/| |\___'
-        '     /   /   \   \'
-        '    /___/     \___\'
+        "     /   /   \\   \\"
+        "    /___/     \\___\\"
     )
 
     echo
@@ -202,7 +202,7 @@ prompt_purge_confirmation() {
 
     echo
     printf '%b%s%b' "$PURGE_PROMPT_COLOR" "Type PURGE to run every prune command without more prompts: " "$RESET"
-    read -r "$result_var"
+    read -r "${result_var?}"
 }
 
 print_intro() {
@@ -230,6 +230,7 @@ if [[ "$PREVIEW_ONLY" -eq 1 ]]; then
 fi
 
 echo
+choice=''
 print_color "$BRIGHT_CYAN" "1. Purge all unused Docker resources [1]"
 print_color "$BRIGHT_CYAN" "2. One by one [2]"
 print_color "$BRIGHT_CYAN" "3. Preview only [3]"
@@ -238,6 +239,7 @@ prompt_input "$BRIGHT_CYAN" "Select option: " choice
 if [[ "$choice" == "1" ]]; then
     show_docker_preview
 
+    confirm=''
     prompt_purge_confirmation confirm
     if [[ "$confirm" != "PURGE" ]]; then
         echo "Confirmation did not match. Exiting."
@@ -258,36 +260,42 @@ elif [[ "$choice" == "2" ]]; then
     ran_any=0
     show_docker_preview
 
+    runStop=''
     prompt_yes_no "About to stop all running containers. Proceed?" runStop
     if [[ "$runStop" =~ ^[Yy]$ ]]; then
         stop_running_containers
         ran_any=1
     fi
 
+    runCont=''
     prompt_yes_no "About to purge all stopped containers. Proceed?" runCont
     if [[ "$runCont" =~ ^[Yy]$ ]]; then
         run_docker_prune "Purging stopped containers..." container prune -f
         ran_any=1
     fi
 
+    runImg=''
     prompt_yes_no "About to purge all unused images. Proceed?" runImg
     if [[ "$runImg" =~ ^[Yy]$ ]]; then
         run_docker_prune "Purging unused images..." image prune -a -f
         ran_any=1
     fi
 
+    runVol=''
     prompt_yes_no "About to clear all unused named and anonymous volumes. Proceed?" runVol
     if [[ "$runVol" =~ ^[Yy]$ ]]; then
         run_docker_prune "Purging unused named and anonymous volumes..." volume prune -a -f
         ran_any=1
     fi
 
+    runNet=''
     prompt_yes_no "About to clear all unused networks. Proceed?" runNet
     if [[ "$runNet" =~ ^[Yy]$ ]]; then
         run_docker_prune "Purging unused networks..." network prune -f
         ran_any=1
     fi
 
+    runBld=''
     prompt_yes_no "About to clear all build cache. Proceed?" runBld
     if [[ "$runBld" =~ ^[Yy]$ ]]; then
         run_docker_prune "Purging build cache..." builder prune -a -f
